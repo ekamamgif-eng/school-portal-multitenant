@@ -5,7 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "20.9.0"
-  SECRETS_SCAN_OMIT_KEYS = "CLERK_SECRET_KEY,DATABASE_URL"
+  SECREVALIDATE_TOKEN = "cursorschool-secret-2025"
+  SECRETS_SCAN_OMIT_KEYS = "CLERK_SECRET_KEY,DATABASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
 
 # Redirect all requests to Next.js
 [[redirects]]
