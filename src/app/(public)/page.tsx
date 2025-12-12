@@ -109,7 +109,8 @@ export default async function Home() {
   const user = await currentUser();
   const platformSeo = await getPlatformSeo() as any;
   const platformBranding = await getPlatformBranding() as any;
-  const isSuperAdmin = user?.emailAddresses[0]?.emailAddress === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
+  const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
+  const isSuperAdmin = !!user && !!superAdminEmail && user.emailAddresses[0]?.emailAddress === superAdminEmail;
 
   // Apply branding if exists
   const brandingStyle = platformBranding ? {
