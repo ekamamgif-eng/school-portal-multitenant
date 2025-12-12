@@ -5,7 +5,7 @@ export default defineConfig({
   schema: "./src/lib/db/schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: "postgresql://neondb_owner:npg_p1Ato0BUSDZK@ep-orange-brook-ad969ogn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    url: process.env.DATABASE_URL!,
   },
   verbose: true,
   migrations: {
