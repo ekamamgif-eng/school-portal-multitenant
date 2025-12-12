@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const tenants = pgTable("tenants", {
@@ -6,7 +6,18 @@ export const tenants = pgTable("tenants", {
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
   domain: text("domain").unique(),
+  logoUrl: text("logo_url"),
+  slogan: text("slogan"),
+  branding: jsonb("branding"), // Stores generic branding config like colors
+  seo: jsonb("seo"), // Stores { title, description, keywords }
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const platformSettings = pgTable("platform_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").unique().notNull(), // e.g., 'branding'
+  value: jsonb("value").notNull(),     // Stores the configuration
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const users = pgTable("users", {

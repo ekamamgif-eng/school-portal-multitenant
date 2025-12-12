@@ -1,4 +1,7 @@
-# Neon Postgres
+const fs = require('fs');
+const path = require('path');
+
+const content = `# Neon Postgres
 DATABASE_URL="postgresql://neondb_owner:npg_p1Ato0BUSDZK@ep-orange-brook-ad969ogn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 # Clerk
@@ -10,6 +13,13 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+`;
 
-NEXT_PUBLIC_SUPER_ADMIN_EMAIL=ekamamgif@gmail.com
-NEXT_PUBLIC_SUPER_ADMIN_PASSWORD=EkaAdmin#Secure2024 | P@$$v0rt@Super
+try {
+    const filePath = path.join(process.cwd(), '.env.local');
+    fs.writeFileSync(filePath, content.trim(), 'utf8');
+    console.log('.env.local has been rewritten successfully.');
+} catch (error) {
+    console.error('Failed to write .env.local:', error);
+    process.exit(1);
+}

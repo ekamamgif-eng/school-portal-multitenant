@@ -1,4 +1,3 @@
-"use client";
 
 import { SignedIn, SignedOut, OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Building2, GraduationCap, Users, BookOpen, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { currentUser } from "@clerk/nextjs/server";
+import { getPlatformSeo, getPlatformBranding } from "@/lib/actions/branding";
+import { PlatformSeoDialog } from "@/components/seo/PlatformSeoDialog";
+import { redirect } from "next/navigation";
 
 // Mock tenant data - in production, this would come from your database
 const tenants = [
@@ -102,19 +105,55 @@ function TenantCard({ tenant }: { tenant: typeof tenants[0] }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const user = await currentUser();
+  const platformSeo = await getPlatformSeo() as any;
+  const platformBranding = await getPlatformBranding() as any;
+  const isSuperAdmin = user?.emailAddresses[0]?.emailAddress === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
+
+  // Apply branding if exists
+  const brandingStyle = platformBranding ? {
+    '--primary': platformBranding.branding?.primary,
+    '--primary-foreground': '#ffffff', // Simplified: assume white text on primary
+    '--secondary': platformBranding.branding?.secondary,
+  } as React.CSSProperties : {};
+
+  // Auto-redirect super admin to dashboard
+  if (isSuperAdmin) {
+    redirect("/super-admin");
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" style={brandingStyle}>
+
+      {isSuperAdmin && (
+        // Redirect super admin to the new dashboard
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button asChild className="shadow-lg gap-2 bg-slate-900 text-white hover:bg-slate-800">
+            <Link href="/super-admin">
+              <ArrowRight className="h-4 w-4" />
+              Go to Admin Dashboard
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
+              {platformBranding?.logoUrl ? (
+                <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
+                  <img src={platformBranding.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center p-1 overflow-hidden">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+              )}
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">CursorSchool</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{platformBranding?.slogan || "CursorSchool"}</h1>
                 <p className="text-sm text-gray-600">Multi-Tenant School Portal</p>
               </div>
             </div>
@@ -239,4 +278,14 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+// Generate Metadata for the page
+export async function generateMetadata() {
+  const seo = await getPlatformSeo() as any;
+  return {
+    title: seo?.title || "CursorSchool - Multi-Tenant School Management",
+    description: seo?.description || "A powerful school management portal for students, teachers, and administrators.",
+    keywords: seo?.keywords || "school, management, portal, education",
+  };
 }

@@ -1,268 +1,170 @@
-import { currentUser, clerkClient, auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { currentUser, auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { tenants } from "@/lib/db/schema";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   GraduationCap,
   Users,
   BookOpen,
-  Calendar,
   Award,
-  TrendingUp,
-  Clock,
   MapPin,
   Phone,
   Mail,
-  Globe
+  Globe,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { getTenantBranding } from "@/lib/actions/branding";
+import { TenantBrandingProvider } from "@/components/branding/TenantBrandingProvider";
+import { BrandingEditDialog } from "@/components/branding/BrandingEditDialog";
 
-// Tenant-specific configurations
-const tenantConfigs: Record<string, {
+// Fallback/Default configuration
+const defaultTenantConfig = {
   theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    gradient: string;
-  };
+    primary: "from-blue-600 to-cyan-600",
+    secondary: "from-blue-50 to-cyan-50",
+    accent: "bg-blue-600",
+    gradient: "bg-gradient-to-br from-blue-500/10 to-cyan-500/10"
+  },
   info: {
-    type: string;
-    established: string;
-    location: string;
-    phone: string;
-    email: string;
-    website: string;
-  };
+    type: "School",
+    established: "2024",
+    location: "Location",
+    phone: "+1 234 567 890",
+    email: "info@school.edu",
+    website: "www.school.edu"
+  },
   stats: {
-    students: number;
-    teachers: number;
-    classes: number;
-    achievements: number;
-  };
-  features: Array<{
-    icon: any;
-    title: string;
-    description: string;
-  }>;
-  highlights: string[];
-}> = {
-  demo: {
-    theme: {
-      primary: "from-blue-600 to-cyan-600",
-      secondary: "from-blue-50 to-cyan-50",
-      accent: "bg-blue-600",
-      gradient: "bg-gradient-to-br from-blue-500/10 to-cyan-500/10"
-    },
-    info: {
-      type: "Demo School",
-      established: "2024",
-      location: "Jakarta, Indonesia",
-      phone: "+62 21 1234 5678",
-      email: "info@demo.school",
-      website: "www.demo.school"
-    },
-    stats: {
-      students: 450,
-      teachers: 32,
-      classes: 24,
-      achievements: 15
-    },
-    features: [
-      {
-        icon: BookOpen,
-        title: "Digital Learning",
-        description: "Interactive online courses and resources"
-      },
-      {
-        icon: Award,
-        title: "Excellence Programs",
-        description: "Advanced placement and honors courses"
-      },
-      {
-        icon: Users,
-        title: "Community",
-        description: "Active parent-teacher collaboration"
-      }
-    ],
-    highlights: [
-      "🏆 National Science Competition Winner 2024",
-      "📚 Digital Library with 10,000+ Books",
-      "🎨 State-of-the-art Art & Music Studios"
-    ]
+    students: 100,
+    teachers: 10,
+    classes: 5,
+    achievements: 0
   },
-  smpn1: {
-    theme: {
-      primary: "from-emerald-600 to-teal-600",
-      secondary: "from-emerald-50 to-teal-50",
-      accent: "bg-emerald-600",
-      gradient: "bg-gradient-to-br from-emerald-500/10 to-teal-500/10"
+  features: [
+    {
+      icon: BookOpen,
+      title: "Digital Learning",
+      description: "Interactive online courses and resources"
     },
-    info: {
-      type: "State Junior High School",
-      established: "1985",
-      location: "Jakarta Pusat, DKI Jakarta",
-      phone: "+62 21 3456 7890",
-      email: "admin@smpn1-jakarta.sch.id",
-      website: "www.smpn1-jakarta.sch.id"
+    {
+      icon: Users,
+      title: "Community",
+      description: "Active parent-teacher collaboration"
     },
-    stats: {
-      students: 680,
-      teachers: 48,
-      classes: 32,
-      achievements: 28
-    },
-    features: [
-      {
-        icon: TrendingUp,
-        title: "Academic Excellence",
-        description: "Top 10 ranking in national exams"
-      },
-      {
-        icon: Globe,
-        title: "International Programs",
-        description: "Exchange programs with partner schools"
-      },
-      {
-        icon: Award,
-        title: "Sports Champions",
-        description: "Multiple regional sports titles"
-      }
-    ],
-    highlights: [
-      "🥇 Best Junior High School in Jakarta 2023",
-      "🌍 Sister School Program with 5 Countries",
-      "💻 Full Computer Lab & Coding Classes"
-    ]
-  },
-  sdn1: {
-    theme: {
-      primary: "from-amber-600 to-orange-600",
-      secondary: "from-amber-50 to-orange-50",
-      accent: "bg-amber-600",
-      gradient: "bg-gradient-to-br from-amber-500/10 to-orange-500/10"
-    },
-    info: {
-      type: "State Elementary School",
-      established: "1978",
-      location: "Bandung, Jawa Barat",
-      phone: "+62 22 2345 6789",
-      email: "sdn1@bandung.sch.id",
-      website: "www.sdn1-bandung.sch.id"
-    },
-    stats: {
-      students: 320,
-      teachers: 24,
-      classes: 18,
-      achievements: 12
-    },
-    features: [
-      {
-        icon: Users,
-        title: "Character Building",
-        description: "Focus on moral and ethical development"
-      },
-      {
-        icon: BookOpen,
-        title: "Reading Program",
-        description: "Daily reading activities for all grades"
-      },
-      {
-        icon: Award,
-        title: "Creative Arts",
-        description: "Music, dance, and visual arts programs"
-      }
-    ],
-    highlights: [
-      "🎭 Annual Cultural Festival",
-      "📖 Literacy Champion School 2024",
-      "🌳 Green School Award Winner"
-    ]
-  },
-  smpn2: {
-    theme: {
-      primary: "from-purple-600 to-pink-600",
-      secondary: "from-purple-50 to-pink-50",
-      accent: "bg-purple-600",
-      gradient: "bg-gradient-to-br from-purple-500/10 to-pink-500/10"
-    },
-    info: {
-      type: "State Junior High School",
-      established: "1990",
-      location: "Surabaya, Jawa Timur",
-      phone: "+62 31 3456 7890",
-      email: "info@smpn2-surabaya.sch.id",
-      website: "www.smpn2-surabaya.sch.id"
-    },
-    stats: {
-      students: 520,
-      teachers: 38,
-      classes: 28,
-      achievements: 22
-    },
-    features: [
-      {
-        icon: TrendingUp,
-        title: "STEM Excellence",
-        description: "Advanced science and technology programs"
-      },
-      {
-        icon: Globe,
-        title: "Language Center",
-        description: "English, Mandarin, and Japanese courses"
-      },
-      {
-        icon: Award,
-        title: "Innovation Lab",
-        description: "Robotics and coding workshops"
-      }
-    ],
-    highlights: [
-      "🤖 Robotics Competition National Champions",
-      "🔬 Science Olympiad Gold Medalists",
-      "🎯 100% University Acceptance Rate"
-    ]
-  }
+    {
+      icon: Award,
+      title: "Excellence",
+      description: "Advanced placement and honors courses"
+    }
+  ],
+  highlights: [
+    "🏆 Excellence in Education",
+    "📚 Comprehensive Curriculum",
+    "🎨 Creative Arts Programs"
+  ]
 };
 
-export default async function TenantDashboard({
+// SEO Metadata Generation
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const tenant = await getTenantBranding(slug);
+  const seo = tenant?.seo as any;
+
+  return {
+    title: seo?.title || `${tenant?.name || slug} - School Portal`,
+    description: seo?.description || `Welcome to the official portal for ${tenant?.name || slug}.`,
+    keywords: seo?.keywords || "school, education, portal, student, teacher",
+    // OpenGraph
+    openGraph: {
+      title: seo?.title || tenant?.name,
+      description: seo?.description,
+      images: tenant?.logoUrl ? [tenant.logoUrl] : [],
+    }
+  };
+}
+
+export default async function TenantPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const user = await currentUser();
+  const { orgId, orgRole, userId } = await auth();
 
-  // Get tenant configuration
-  const config = tenantConfigs[slug] || tenantConfigs.demo;
-  const initials = slug.toUpperCase().slice(0, 2);
+  // Fetch Tenant Data from DB
+  let tenant = await getTenantBranding(slug);
 
-  if (!user) {
-    return (
-      <div className={`min-h-screen ${config.theme.gradient}`}>
+  // ... (rest of the logic) ...
+
+  const isTenantAdmin = !!(user && tenant && orgId === tenant.id && (orgRole === 'org:admin' || orgRole === 'org:creator')); // Adjust roles as needed
+
+  // ... (branding logic) ...
+  const branding = tenant?.branding as any || {};
+  const primaryColor = branding.primary || '#2563eb';
+  const secondaryColor = branding.secondary || '#eff6ff';
+
+  const config = {
+    ...defaultTenantConfig,
+    info: { ...defaultTenantConfig.info, type: tenant?.slogan || defaultTenantConfig.info.type },
+  };
+
+  const logoUrl = tenant?.logoUrl || "https://placehold.co/200x200?text=School+Logo";
+  const schoolName = tenant?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const initials = schoolName.slice(0, 2).toUpperCase();
+
+  return (
+    <TenantBrandingProvider branding={branding}>
+      <div className="min-h-screen bg-gradient-to-br from-[var(--secondary)]/50 to-[var(--primary)]/5">
+
+        {/* Admin Edit Trigger */}
+        {isTenantAdmin && tenant && (
+          <BrandingEditDialog
+            tenantId={tenant.id}
+            currentData={{
+              logoUrl: tenant.logoUrl || '',
+              slogan: tenant.slogan || '',
+              branding: tenant.branding,
+              seo: tenant.seo, // Pass SEO data
+            }}
+          />
+        )}
+
         {/* Header */}
-        <header className="border-b bg-white/80 backdrop-blur-sm">
+        <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 border-2 border-primary">
-                  <AvatarFallback className={`bg-gradient-to-br ${config.theme.primary} text-white font-bold`}>
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                {logoUrl ? (
+                  <img src={logoUrl} alt={schoolName} className="h-12 w-auto object-contain" />
+                ) : (
+                  <Avatar className="h-12 w-12 border-2 border-[var(--primary)]">
+                    <AvatarFallback className="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <div>
-                  <h1 className="text-xl font-bold capitalize">{slug.replace(/(\d+)/, ' $1')}</h1>
+                  <h1 className="text-xl font-bold capitalize text-foreground">{schoolName}</h1>
                   <p className="text-sm text-muted-foreground">{config.info.type}</p>
                 </div>
               </div>
-              <Button asChild className={config.theme.accent}>
-                <Link href="/sign-in">Sign In with Clerk</Link>
-              </Button>
+
+              <div className="flex gap-4">
+                {user ? (
+                  <Button asChild className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-90">
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <Button asChild className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-90">
+                    <Link href="/sign-in">Sign In</Link>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -270,51 +172,51 @@ export default async function TenantDashboard({
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center mb-12">
-            <Badge className="mb-4" variant="secondary">
+            <Badge className="mb-4 bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--secondary)]/80" variant="secondary">
               <MapPin className="h-3 w-3 mr-1" />
               {config.info.location}
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Welcome to {slug.toUpperCase().replace(/(\d+)/, ' $1')}
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+              Welcome to {schoolName}
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              {config.info.type} • Established {config.info.established}
+              {tenant?.slogan || "Empowering the next generation of leaders"}
             </p>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <Users className={`h-8 w-8 mx-auto mb-2 text-primary`} />
+                  <Users className="h-8 w-8 mx-auto mb-2 text-[var(--primary)]" />
                   <div className="text-2xl font-bold">{config.stats.students}</div>
                   <div className="text-sm text-muted-foreground">Students</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <GraduationCap className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <GraduationCap className="h-8 w-8 mx-auto mb-2 text-[var(--primary)]" />
                   <div className="text-2xl font-bold">{config.stats.teachers}</div>
                   <div className="text-sm text-muted-foreground">Teachers</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-[var(--primary)]" />
                   <div className="text-2xl font-bold">{config.stats.classes}</div>
                   <div className="text-sm text-muted-foreground">Classes</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <Award className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <Award className="h-8 w-8 mx-auto mb-2 text-[var(--primary)]" />
                   <div className="text-2xl font-bold">{config.stats.achievements}</div>
                   <div className="text-sm text-muted-foreground">Awards</div>
                 </CardContent>
               </Card>
             </div>
 
-            <Button asChild size="lg" className={config.theme.accent}>
-              <Link href="/sign-in">Access Dashboard →</Link>
+            <Button asChild size="lg" className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-90">
+              <Link href="/sign-in">Access Student Portal →</Link>
             </Button>
           </div>
 
@@ -325,8 +227,8 @@ export default async function TenantDashboard({
               {config.features.map((feature, index) => (
                 <Card key={index} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className={`h-12 w-12 rounded-lg ${config.theme.gradient} flex items-center justify-center mb-4`}>
-                      <feature.icon className="h-6 w-6 text-primary" />
+                    <div className="h-12 w-12 rounded-lg bg-[var(--secondary)] flex items-center justify-center mb-4">
+                      <feature.icon className="h-6 w-6 text-[var(--primary)]" />
                     </div>
                     <CardTitle>{feature.title}</CardTitle>
                     <CardDescription>{feature.description}</CardDescription>
@@ -337,10 +239,10 @@ export default async function TenantDashboard({
           </div>
 
           {/* Highlights */}
-          <Card className={`${config.theme.gradient} border-2`}>
+          <Card className="bg-[var(--secondary)]/10 border-2 border-[var(--secondary)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
+                <Award className="h-5 w-5 text-[var(--primary)]" />
                 Recent Achievements & Highlights
               </CardTitle>
             </CardHeader>
@@ -348,7 +250,7 @@ export default async function TenantDashboard({
               <div className="space-y-3">
                 {config.highlights.map((highlight, index) => (
                   <div key={index} className="flex items-start gap-3">
-                    <div className={`h-2 w-2 rounded-full ${config.theme.accent} mt-2`}></div>
+                    <div className="h-2 w-2 rounded-full bg-[var(--primary)] mt-2"></div>
                     <p className="text-sm">{highlight}</p>
                   </div>
                 ))}
@@ -375,10 +277,6 @@ export default async function TenantDashboard({
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   <span>{config.info.website}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{config.info.location}</span>
-                </div>
               </CardContent>
             </Card>
 
@@ -387,22 +285,16 @@ export default async function TenantDashboard({
                 <CardTitle>Quick Links</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start" asChild>
+                <Button variant="outline" className="w-full justify-start hover:text-[var(--primary)] hover:border-[var(--primary)]" asChild>
                   <Link href="/sign-in">
                     <Users className="h-4 w-4 mr-2" />
                     Student Portal
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+                <Button variant="outline" className="w-full justify-start hover:text-[var(--primary)] hover:border-[var(--primary)]" asChild>
                   <Link href="/sign-in">
                     <GraduationCap className="h-4 w-4 mr-2" />
                     Teacher Portal
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/sign-in">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Academic Calendar
                   </Link>
                 </Button>
               </CardContent>
@@ -410,45 +302,6 @@ export default async function TenantDashboard({
           </div>
         </section>
       </div>
-    );
-  }
-
-  const { orgId } = await auth();
-  if (!orgId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Organization Required</CardTitle>
-            <CardDescription>Please select or create a school organization to continue.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
-  // Auto-create tenant record if missing (first login)
-  let tenant = await db.query.tenants.findFirst({
-    where: eq(tenants.id, orgId as any),
-  });
-
-  if (!tenant) {
-    const client = await clerkClient();
-    const org = await client.organizations.getOrganization({ organizationId: orgId });
-    [tenant] = await db.insert(tenants).values({
-      id: orgId,
-      name: org.name,
-      slug: org.slug || org.name.toLowerCase().replace(/\s+/g, "-"),
-    }).returning();
-  }
-
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold">Welcome to {tenant?.name}</h1>
-      <p className="text-gray-600 mt-2">Your school is live at: <strong>{tenant?.slug}.local.cursorschool.test:3000</strong></p>
-      <div className="mt-8">
-        <a href="/dashboard" className="text-blue-600 hover:underline">Go to Admin Dashboard →</a>
-      </div>
-    </div>
+    </TenantBrandingProvider>
   );
 }
