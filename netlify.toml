@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "20.9.0"
+  SECRETS_SCAN_OMIT_KEYS = "CLERK_SECRET_KEY,DATABASE_URL"
 
 # Redirect all requests to Next.js
 [[redirects]]
