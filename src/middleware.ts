@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/",
+  "/tenant(.*)" // Allow all paths starting with /tenant
 ]);
 
 export default clerkMiddleware(
