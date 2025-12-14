@@ -5,58 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Building2, GraduationCap, Users, BookOpen, ArrowRight } from "lucide-react";
+import { Building2, GraduationCap, Users, BookOpen, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { currentUser } from "@clerk/nextjs/server";
 import { getPlatformSeo, getPlatformBranding } from "@/lib/actions/branding";
+import { getAllTenants, TenantData } from "@/lib/actions/tenants";
 import { redirect } from "next/navigation";
+import { TenantBrandingProvider } from "@/components/branding/TenantBrandingProvider";
 
-// Mock tenant data - in production, this would come from your database
-const tenants = [
-  {
-    id: "demo",
-    name: "Demo School",
-    slug: "demo",
-    description: "Explore our demo school environment",
-    logo: null,
-    studentCount: 450,
-    teacherCount: 32,
-    status: "active"
-  },
-  {
-    id: "smpn1",
-    name: "SMPN 1 Jakarta",
-    slug: "smpn1",
-    description: "State Junior High School 1 Jakarta",
-    logo: null,
-    studentCount: 680,
-    teacherCount: 48,
-    status: "active"
-  },
-  {
-    id: "sdn1",
-    name: "SDN 1 Bandung",
-    slug: "sdn1",
-    description: "State Elementary School 1 Bandung",
-    logo: null,
-    studentCount: 320,
-    teacherCount: 24,
-    status: "active"
-  },
-  {
-    id: "smpn2",
-    name: "SMPN 2 Surabaya",
-    slug: "smpn2",
-    description: "State Junior High School 2 Surabaya",
-    logo: null,
-    studentCount: 520,
-    teacherCount: 38,
-    status: "active"
-  }
-];
 
-function TenantCard({ tenant }: { tenant: typeof tenants[0] }) {
+interface TenantCardProps {
+  tenant: TenantData;
+}
+
+function TenantCard({ tenant }: TenantCardProps) {
   const initials = tenant.name
     .split(" ")
     .map(word => word[0])
@@ -64,38 +27,86 @@ function TenantCard({ tenant }: { tenant: typeof tenants[0] }) {
     .toUpperCase()
     .slice(0, 2);
 
+  // Extract branding colors
+  const primaryColor = tenant.branding?.primary || '#2563eb';
+  const secondaryColor = tenant.branding?.secondary || '#4f46e5';
+  const features = tenant.branding?.features || [];
+
   return (
-    <Link href={`/tenant/${tenant.slug}`}>
-      <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-primary">
-        <CardHeader className="pb-3">
+    <Link href={`/${tenant.slug}`}>
+      <Card
+        className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-primary relative overflow-hidden"
+        style={{
+          borderColor: `${primaryColor}20`,
+        }}
+      >
+        {/* Gradient overlay on hover */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+          }}
+        />
+
+        <CardHeader className="pb-3 relative z-10">
           <div className="flex items-start justify-between">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
-              <AvatarImage src={tenant.logo || undefined} alt={tenant.name} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xl font-bold">
+            <Avatar className="h-16 w-16 border-2" style={{ borderColor: `${primaryColor}40` }}>
+              {tenant.logoUrl ? (
+                <AvatarImage src={tenant.logoUrl} alt={tenant.name} />
+              ) : null}
+              <AvatarFallback
+                className="text-white text-xl font-bold"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+                }}
+              >
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <Badge variant={tenant.status === "active" ? "default" : "secondary"}>
-              {tenant.status}
+            <Badge
+              className="text-white border-0"
+              style={{ backgroundColor: primaryColor }}
+            >
+              active
             </Badge>
           </div>
-          <CardTitle className="text-xl mt-4 group-hover:text-primary transition-colors">
+          <CardTitle
+            className="text-xl mt-4 transition-colors"
+            style={{
+              color: 'inherit'
+            }}
+          >
             {tenant.name}
           </CardTitle>
-          <CardDescription className="line-clamp-2">{tenant.description}</CardDescription>
+          <CardDescription className="line-clamp-2">
+            {tenant.slogan || tenant.seo?.description || "Welcome to our school portal"}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{tenant.studentCount} students</span>
+        <CardContent className="relative z-10">
+          {/* Features badges */}
+          {features.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {features.slice(0, 3).map((feature, idx) => (
+                <Badge
+                  key={idx}
+                  variant="outline"
+                  className="text-xs"
+                  style={{
+                    borderColor: `${primaryColor}40`,
+                    color: primaryColor
+                  }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {feature}
+                </Badge>
+              ))}
             </div>
-            <div className="flex items-center gap-1">
-              <GraduationCap className="h-4 w-4" />
-              <span>{tenant.teacherCount} teachers</span>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-primary font-medium group-hover:gap-2 transition-all">
+          )}
+
+          <div
+            className="mt-4 flex items-center font-medium group-hover:gap-2 transition-all"
+            style={{ color: primaryColor }}
+          >
             <span>Visit School</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -105,13 +116,14 @@ function TenantCard({ tenant }: { tenant: typeof tenants[0] }) {
   );
 }
 
-import { TenantBrandingProvider } from "@/components/branding/TenantBrandingProvider";
-
 export default async function Home() {
   const user = await currentUser();
   const platformSeo = await getPlatformSeo() as any;
   const platformBranding = await getPlatformBranding() as any;
   const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
+
+  // Fetch real tenant data from database
+  const tenants = await getAllTenants();
 
   // Strict Debugging
   console.log("Check SuperAdmin:", {
@@ -216,7 +228,7 @@ export default async function Home() {
               <Separator orientation="vertical" className="h-4" />
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Users className="h-4 w-4" />
-                <span>{tenants.reduce((acc, t) => acc + t.studentCount, 0)}+ Students</span>
+                <span>{tenants.length * 100}+ Students</span>
               </div>
             </div>
           </div>
