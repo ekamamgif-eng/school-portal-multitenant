@@ -9,6 +9,7 @@ import {
     Palette,
     Box,
     User,
+    Users,
     Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,11 @@ const menuItems = [
         title: 'Dashboard',
         href: '/super-admin',
         icon: LayoutDashboard,
+    },
+    {
+        title: 'Tenants',
+        href: '/super-admin/tenants',
+        icon: Users,
     },
     {
         title: 'Platform SEO',

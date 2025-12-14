@@ -6,13 +6,25 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
+export interface BrandingConfig {
+    primary?: string;
+    secondary?: string;
+    // Add other keys as needed
+}
+
+export interface SeoConfig {
+    title?: string;
+    description?: string;
+    keywords?: string;
+}
+
 export async function updateTenantBranding(tenantId: string, data: {
     logoUrl?: string;
     slogan?: string;
-    branding?: any;
-    seo?: any;
+    branding?: BrandingConfig;
+    seo?: SeoConfig;
 }) {
-    const { orgId, orgRole } = await auth();
+    const { orgId } = await auth();
 
     // Basic authorization: Ensure user belongs to the org/tenant or is a super admin (needs better check)
     if (!orgId || (orgId !== tenantId)) {
@@ -45,12 +57,12 @@ export async function getTenantBranding(slug: string) {
         name: tenant.name,
         logoUrl: tenant.logoUrl,
         slogan: tenant.slogan,
-        branding: tenant.branding,
-        seo: tenant.seo,
+        branding: tenant.branding as BrandingConfig,
+        seo: tenant.seo as SeoConfig,
     };
 }
 
-export async function updatePlatformBranding(data: any) {
+export async function updatePlatformBranding(data: BrandingConfig) {
     const user = await currentUser();
     if (user?.emailAddresses[0]?.emailAddress !== process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL) {
         throw new Error("Unauthorized");
@@ -76,7 +88,7 @@ export async function getPlatformBranding() {
     return settings?.value || null;
 }
 
-export async function updatePlatformSeo(data: any) {
+export async function updatePlatformSeo(data: SeoConfig) {
     const user = await currentUser();
     if (user?.emailAddresses[0]?.emailAddress !== process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL) {
         throw new Error("Unauthorized");

@@ -59,7 +59,7 @@ export const classes = pgTable("classes", {
 export const classStudents = pgTable("class_students", {
   classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   studentId: uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
-}, (table) => ({
+}, () => ({
   pk: sql`PRIMARY KEY (class_id, student_id)`,
 }));
 
