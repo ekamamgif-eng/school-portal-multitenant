@@ -38,7 +38,9 @@ export async function getAllTenants(): Promise<TenantData[]> {
             domain: tenant.domain,
             logoUrl: tenant.logoUrl,
             slogan: tenant.slogan,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             branding: tenant.branding as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             seo: tenant.seo as any,
             createdAt: tenant.createdAt,
         }));
@@ -63,7 +65,9 @@ export async function getTenantBySlug(slug: string): Promise<TenantData | null> 
             domain: tenant.domain,
             logoUrl: tenant.logoUrl,
             slogan: tenant.slogan,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             branding: tenant.branding as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             seo: tenant.seo as any,
             createdAt: tenant.createdAt,
         };
@@ -88,7 +92,9 @@ export async function getTenantById(id: string): Promise<TenantData | null> {
             domain: tenant.domain,
             logoUrl: tenant.logoUrl,
             slogan: tenant.slogan,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             branding: tenant.branding as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             seo: tenant.seo as any,
             createdAt: tenant.createdAt,
         };
